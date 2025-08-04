@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Home - Weather & Auth</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <style>
+    
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      height: 100%;
+      background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1350&q=80');
+      background-size: cover;
+      background-position: top center;
+      background-repeat: no-repeat;
+    }
+    .weather-container {
+      max-width: 600px;
+      margin: 5% auto 40px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    }
+    input, select, button {
+      padding: 10px;
+      margin-top: 10px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+    #result ul {
+      max-height: 200px;
+      overflow-y: auto;
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <span>Welcome, {{ username }}!</span>
+    <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
+  </div>
+
+  <div class="weather-container">
+    <h1>Weather App</h1>
+    <form id="weatherForm">
+      <input type="text" id="city" placeholder="Enter city name" required />
+      <select id="units">
+        <option value="metric">Celsius</option>
+        <option value="imperial">Fahrenheit</option>
+      </select>
+      <button type="submit">Get Weather</button>
+    </form>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    document.getElementById("weatherForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const city = document.getElementById("city").value;
+      const units = document.getElementById("units").value;
+
+      fetch(`/weather?city=${encodeURIComponent(city)}&units=${units}`)
+        .then(res => res.json())
+        .then(data => {
+          const result = document.getElementById("result");
+          if (data.error) {
+            result.innerHTML = `<p class="error">${data.error}</p>`;
+            return;
+          }
+
+          const list = data.forecast.map(f =>
+            `<li>${f.date}: ${f.temp}°, ${f.description}</li>`
+          ).join("");
+
+          result.innerHTML = `
+            <h2>Weather in ${data.city}</h2>
+            <p><strong>Temperature:</strong> ${data.temperature}°</p>
+            <p><strong>Humidity:</strong> ${data.humidity}%</p>
+            <p><strong>Wind Speed:</strong> ${data.wind_speed} m/s</p>
+            <h3>Forecast:</h3>
+            <ul>${list}</ul>
+          `;
+        })
+        .catch(err => {
+          document.getElementById("result").innerHTML = `<p class="error">Error: ${err}</p>`;
+        });
+    });
+  </script>
+</body>
+</html>
