@@ -5,19 +5,16 @@ import requests
 import os
 
 
-
 app = Flask(__name__)
 app.secret_key = '%!1nte%*(ysbm+z9)lmxhz+pj0x#jvbh@qkr!=nvyr@=7l$6c3'
 
 port = int(os.environ.get("PORT", 5000))
 app.run(host='0.0.0.0', port=port)
 
-client = MongoClient("mongodb://localhost:27017/")
+mongo_uri = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
+client = MongoClient(mongo_uri)
 db = client.authDB
 users = db.users
-mongo_uri = os.environ.get('MONGO_URI')
-client = MongoClient(mongo_uri)
-
 
 API_KEY = "701e97c509ff67b2b3b72ca208f16463"
 
@@ -49,7 +46,7 @@ def register():
     session['user_id'] = str(result.inserted_id)
     session['username'] = username
 
-    flash("Registration successful. Welcome!")
+    flash("signup successful. Welcome!")
     return redirect(url_for('index'))
 
 @app.route('/login', methods=['GET'])
@@ -132,5 +129,6 @@ def get_weather():
         forecast=forecasts
     )
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
