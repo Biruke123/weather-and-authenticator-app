@@ -4,12 +4,8 @@ import bcrypt
 import requests
 import os
 
-
 app = Flask(__name__)
 app.secret_key = '%!1nte%*(ysbm+z9)lmxhz+pj0x#jvbh@qkr!=nvyr@=7l$6c3'
-
-port = int(os.environ.get("PORT", 5000))
-app.run(host='0.0.0.0', port=port)
 
 mongo_uri = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
 client = MongoClient(mongo_uri)
@@ -46,7 +42,7 @@ def register():
     session['user_id'] = str(result.inserted_id)
     session['username'] = username
 
-    flash("signup successful. Welcome!")
+    flash("Signup successful. Welcome!")
     return redirect(url_for('index'))
 
 @app.route('/login', methods=['GET'])
@@ -78,13 +74,11 @@ def logout():
     flash("You have been logged out.")
     return redirect(url_for('login_page'))
 
-
 @app.route('/')
 def index():
     if 'username' not in session:
         return redirect(url_for('login_page'))
     return render_template("index.html", username=session.get('username'))
-
 
 @app.route('/weather')
 def get_weather():
@@ -129,6 +123,7 @@ def get_weather():
         forecast=forecasts
     )
 
+# ✅ Only run this in local development
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
