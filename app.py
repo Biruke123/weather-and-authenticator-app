@@ -5,14 +5,23 @@ import requests
 import os
 
 app = Flask(__name__)
-app.secret_key = '%!1nte%*(ysbm+z9)lmxhz+pj0x#jvbh@qkr!=nvyr@=7l$6c3'
 
-mongo_uri = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
+
+app.secret_key = os.environ.get('SECRET_KEY', 'fallback-dev-secret')
+
+
+mongo_uri = os.environ.get('MONGO_URI')
+if not mongo_uri:
+    raise RuntimeError(" MONGO_URI environment variable not set!")
+
 client = MongoClient(mongo_uri)
 db = client.authDB
 users = db.users
 
-API_KEY = "701e97c509ff67b2b3b72ca208f16463"
+
+API_KEY = os.environ.get("WEATHER_API_KEY")
+if not API_KEY:
+    raise RuntimeError(" WEATHER_API_KEY environment variable not set!")
 
 @app.route('/signup', methods=['GET'])
 def signup_page():
@@ -76,14 +85,16 @@ def logout():
 
 @app.route('/')
 def index():
-    if 'username' not in session:
+    username = session.get('username')
+    if not username:
         return redirect(url_for('login_page'))
-    return render_template("index.html", username=session.get('username'))
+    return render_template("index.html", username=username)
 
 @app.route('/weather')
 def get_weather():
     city = request.args.get('city')
     units = request.args.get('units', 'metric')
+
     if not city:
         return jsonify(error="City is required"), 400
 
@@ -91,10 +102,10 @@ def get_weather():
     try:
         weather_resp = requests.get("https://api.openweathermap.org/data/2.5/weather", params=params)
         weather_resp.raise_for_status()
+        weather_data = weather_resp.json()
     except requests.RequestException:
         return jsonify(error="Failed to fetch current weather"), 500
 
-    weather_data = weather_resp.json()
     if weather_data.get("cod") != 200:
         return jsonify(error=weather_data.get("message", "City not found")), 404
 
@@ -102,17 +113,20 @@ def get_weather():
     wind = weather_data.get("wind", {})
     description = weather_data.get("weather", [{}])[0].get("main", "").lower()
 
-    forecast_resp = requests.get("https://api.openweathermap.org/data/2.5/forecast", params=params)
     forecasts = []
-    if forecast_resp.ok:
-        fc = forecast_resp.json()
-        entries = fc.get("list", [])[:40]
-        for entry in entries[::8]:
-            forecasts.append({
-                "date": entry.get("dt_txt", "").split()[0],
-                "temp": entry.get("main", {}).get("temp"),
-                "description": entry.get("weather", [{}])[0].get("description", "")
-            })
+    try:
+        forecast_resp = requests.get("https://api.openweathermap.org/data/2.5/forecast", params=params)
+        if forecast_resp.ok:
+            fc = forecast_resp.json()
+            entries = fc.get("list", [])[:40]
+            for entry in entries[::8]:
+                forecasts.append({
+                    "date": entry.get("dt_txt", "").split()[0],
+                    "temp": entry.get("main", {}).get("temp"),
+                    "description": entry.get("weather", [{}])[0].get("description", "")
+                })
+    except Exception:
+        pass  
 
     return jsonify(
         city=city.title(),
@@ -122,7 +136,6 @@ def get_weather():
         description=description,
         forecast=forecasts
     )
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
